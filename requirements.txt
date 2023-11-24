@@ -1,0 +1,4 @@
+panel;
+ipykernel;
+ipywidgets-bokeh;
+matplotlib;
