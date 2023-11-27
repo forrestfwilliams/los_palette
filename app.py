@@ -5,50 +5,10 @@ from matplotlib.figure import Figure
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.markers import MarkerStyle
 
+from los_palette import angles_to_unit_vector, unit_vector_to_hex
+
 WIDTH = 800
 BG_COLOR = '#646464'
-
-
-# los_palette.py ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-def angles_to_unit_vector(heading_angle_degrees, grazing_angle_degrees, left_looking=True):
-    # Convert angles to radians
-    heading_angle_start_at_east = 90 - heading_angle_degrees
-    look_offset = 90 if left_looking else -90
-    heading_los = heading_angle_start_at_east + look_offset
-    heading_angle_radians = np.radians(heading_los)
-
-    grazing_angle_sensor_to_ground = -(90 - grazing_angle_degrees)
-    grazing_angle_radians = np.radians(grazing_angle_sensor_to_ground)
-
-    # Calculate the vector components
-    x_component = np.cos(heading_angle_radians) * np.cos(grazing_angle_radians)
-    y_component = np.sin(heading_angle_radians) * np.cos(grazing_angle_radians)
-    z_component = np.sin(grazing_angle_radians)
-
-    # Create a NumPy array for the vector
-    vector = np.array([x_component, y_component, z_component])
-
-    # Normalize the vector to obtain the unit vector
-    unit_vector = (vector / np.linalg.norm(vector)).round(5)
-
-    return unit_vector
-
-
-def unit_vector_to_hex(unit_vector):
-    centered_rgb = (unit_vector * 127.5) + 127.5
-    # r, g, b = centered_rgb.round(0).astype(int)
-    r, b, g = centered_rgb.round(0).astype(int)
-    hex_color = f'#{r:02X}{g:02X}{b:02X}'
-    return hex_color
-
-
-def angles_to_hex(heading_angle_degrees, grazing_angle_degrees, left_looking=True):
-    unit_vector = angles_to_unit_vector(heading_angle_degrees, grazing_angle_degrees, left_looking)
-    hex = unit_vector_to_hex(unit_vector)
-    return hex
-
-
-# end los_palette.py~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 
 def get_heading_line(vector):
@@ -112,8 +72,8 @@ def plot_look_direction(params):
     fig = Figure(figsize=(6, 6))
     ax = fig.subplots()
     ax.plot(np.cos(unit_circle), np.sin(unit_circle), linewidth=1, color=BG_COLOR, zorder=2)
-    ax.plot(az_x, az_y, color='lightgray', linestyle='--', label='Azimuth Direction', zorder=4)
-    ax.plot(x, y, color=away_color, linestyle='--', label='Look Direction', zorder=3)
+    ax.plot(x, y, color=away_color, linestyle='--', label='Look Direction', linewidth=3, zorder=3)
+    ax.plot(az_x, az_y, color='darkgray', linestyle='--', label='Azimuth Direction', linewidth=3, zorder=4)
     angle = np.rad2deg(np.arctan2(away_vector[1], away_vector[0]))
     satellite_marker(ax, angle)
 
@@ -124,7 +84,7 @@ def plot_look_direction(params):
     ax.spines['right'].set_visible(False)
     ax.xaxis.set_ticks([-1, 1], labels=[270, 90], zorder=5)
     ax.yaxis.set_ticks([-1, 1], labels=[180, 0])
-    ax.legend(loc='upper left')
+    ax.legend(loc='upper left', fontsize='large', markerscale=1.5, framealpha=0.5)
 
     fig.patch.set_alpha(0.0)
     fig.tight_layout()
@@ -157,8 +117,8 @@ def plot_grazing_angle(params):
 
     fig = Figure(figsize=(6, 6))
     ax = fig.subplots()
-    ax.plot(x[:2], y[:2], linewidth=2, linestyle='--', color=away_color, label='Away from Satellite', zorder=2)
-    ax.plot(x[1:], y[1:], linewidth=2, linestyle='--', color=towards_color, label='Towards Satellite', zorder=3)
+    ax.plot(x[:2], y[:2], linewidth=3, linestyle='--', color=away_color, label='Away from Satellite', zorder=2)
+    ax.plot(x[1:], y[1:], linewidth=3, linestyle='--', color=towards_color, label='Towards Satellite', zorder=3)
     angle = np.rad2deg(np.arccos(away_vector[2]))
     angle = angle if left_looking else angle + (2 * (180 - angle))
     satellite_marker(ax, angle, (0, 1))
@@ -170,7 +130,7 @@ def plot_grazing_angle(params):
     ax.spines['right'].set_visible(False)
     ax.xaxis.set_ticks([])
     ax.yaxis.set_ticks([])
-    ax.legend(loc='upper left')
+    ax.legend(loc='upper left', fontsize='large', markerscale=1.5, framealpha=0.5)
 
     fig.patch.set_alpha(0.0)
     fig.tight_layout()
@@ -223,7 +183,7 @@ def reset_widgets(menu_value):
         'we': (0, 90, 'Left Looking'),
         'sn': (90, 90, 'Left Looking'),
     }
-    heading_slider.value, grazing_slider.value, look_switch.value = options[menu_value]
+    heading_input.value, grazing_input.value, look_switch.value = options[menu_value]
 
 
 def on_menu_change(event):
@@ -231,9 +191,11 @@ def on_menu_change(event):
     reset_widgets(selected_option)
 
 
-opts = dict(align=('center', 'center'), width=int(WIDTH / 4.5))
-heading_slider = pn.widgets.IntSlider(name='Satellite Heading', start=0, end=360, step=1, value=360 - 12, **opts)
-grazing_slider = pn.widgets.IntSlider(name='Grazing Angle', start=0, end=90, step=1, value=34, **opts)
+opts = dict(align=('end', 'end'), width=int(WIDTH / 4.5))
+heading_input = pn.widgets.IntInput(name='Satellite Heading (0-360)', start=0, end=360, step=5, value=360 - 12, **opts)
+grazing_input = pn.widgets.IntInput(name='Grazing Angle (0-90)', start=0, end=90, step=5, value=34, **opts)
+# heading_input = pn.widgets.IntSlider(name='Satellite Heading', start=0, end=360, step=1, value=360 - 12, **opts)
+# grazing_input = pn.widgets.IntSlider(name='Grazing Angle', start=0, end=90, step=1, value=34, **opts)
 look_switch = pn.widgets.ToggleGroup(options=['Left Looking', 'Right Looking'], behavior='radio', **opts)
 menu_items = [
     ('Sentinel-1 Ascending', 's1a'),
@@ -245,12 +207,12 @@ menu_items = [
 menu = pn.widgets.MenuButton(name='Presets', items=menu_items, button_type='primary', **opts)
 menu.on_click(on_menu_change)
 
-params = pn.bind(get_params, heading_slider, grazing_slider, look_switch)
+params = pn.bind(get_params, heading_input, grazing_input, look_switch)
 interactive_look = pn.bind(plot_look_direction, params)
 interactive_grazing = pn.bind(plot_grazing_angle, params)
 interactive_color = pn.bind(plot_color_gradient, params)
 pn.Column(
-    pn.Row(menu, heading_slider, grazing_slider, look_switch, height=100),
+    pn.Row(menu, heading_input, grazing_input, look_switch, height=100),
     pn.Row(interactive_look, interactive_grazing),
     pn.Row(interactive_color),
 ).servable()
