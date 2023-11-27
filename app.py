@@ -5,11 +5,50 @@ from matplotlib.figure import Figure
 from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.markers import MarkerStyle
 
-from los_palette import angles_to_unit_vector, unit_vector_to_hex
-
-# pn.extension(design='material')
 WIDTH = 800
 BG_COLOR = '#646464'
+
+
+# los_palette.py ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+def angles_to_unit_vector(heading_angle_degrees, grazing_angle_degrees, left_looking=True):
+    # Convert angles to radians
+    heading_angle_start_at_east = 90 - heading_angle_degrees
+    look_offset = 90 if left_looking else -90
+    heading_los = heading_angle_start_at_east + look_offset
+    heading_angle_radians = np.radians(heading_los)
+
+    grazing_angle_sensor_to_ground = -(90 - grazing_angle_degrees)
+    grazing_angle_radians = np.radians(grazing_angle_sensor_to_ground)
+
+    # Calculate the vector components
+    x_component = np.cos(heading_angle_radians) * np.cos(grazing_angle_radians)
+    y_component = np.sin(heading_angle_radians) * np.cos(grazing_angle_radians)
+    z_component = np.sin(grazing_angle_radians)
+
+    # Create a NumPy array for the vector
+    vector = np.array([x_component, y_component, z_component])
+
+    # Normalize the vector to obtain the unit vector
+    unit_vector = (vector / np.linalg.norm(vector)).round(5)
+
+    return unit_vector
+
+
+def unit_vector_to_hex(unit_vector):
+    centered_rgb = (unit_vector * 127.5) + 127.5
+    # r, g, b = centered_rgb.round(0).astype(int)
+    r, b, g = centered_rgb.round(0).astype(int)
+    hex_color = f'#{r:02X}{g:02X}{b:02X}'
+    return hex_color
+
+
+def angles_to_hex(heading_angle_degrees, grazing_angle_degrees, left_looking=True):
+    unit_vector = angles_to_unit_vector(heading_angle_degrees, grazing_angle_degrees, left_looking)
+    hex = unit_vector_to_hex(unit_vector)
+    return hex
+
+
+# end los_palette.py~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 
 def get_heading_line(vector):
@@ -54,11 +93,11 @@ def satellite_marker(axis, angle=0, center=(0, 0)):
     axis.scatter(center[0], center[1], marker=MarkerStyle('o'), s=200, color='black', zorder=1001)
 
 
-def get_params(heading_angle, incidence_angle, look_direction):
+def get_params(heading_angle, grazing_angle, look_direction):
     left_looking = look_direction == 'Left Looking'
-    away_vector = angles_to_unit_vector(heading_angle, incidence_angle, left_looking)
+    away_vector = angles_to_unit_vector(heading_angle, grazing_angle, left_looking)
     away_color = unit_vector_to_hex(away_vector)
-    towards_vector = angles_to_unit_vector(heading_angle, 180 + incidence_angle, left_looking)
+    towards_vector = angles_to_unit_vector(heading_angle, 180 + grazing_angle, left_looking)
     towards_color = unit_vector_to_hex(towards_vector)
     return away_vector, left_looking, (away_color, towards_color)
 
@@ -93,7 +132,7 @@ def plot_look_direction(params):
     return mpl_pane
 
 
-def get_incidence_line(vector, left_looking, vertical_offset=1):
+def get_grazing_line(vector, left_looking, vertical_offset=1):
     if vector[2] == 0:
         x = np.array([100, 0, -100])
         y = np.array([0, 0, 0])
@@ -112,9 +151,9 @@ def get_incidence_line(vector, left_looking, vertical_offset=1):
     return x, y
 
 
-def plot_incidence_angle(params):
+def plot_grazing_angle(params):
     away_vector, left_looking, (away_color, towards_color) = params
-    x, y = get_incidence_line(away_vector, left_looking)
+    x, y = get_grazing_line(away_vector, left_looking)
 
     fig = Figure(figsize=(6, 6))
     ax = fig.subplots()
@@ -158,7 +197,7 @@ def plot_color_gradient(params):
         horizontalalignment='left',
         verticalalignment='bottom',
     )
-    ax.annotate('#ffffff', xy=[0.5, 0.6], fontsize=fontsize, horizontalalignment='center', verticalalignment='bottom')
+    ax.annotate('#FFFFFF', xy=[0.5, 0.6], fontsize=fontsize, horizontalalignment='center', verticalalignment='bottom')
     ax.annotate(
         f'Away from satellite\n{away_color}',
         fontsize=fontsize,
@@ -184,7 +223,7 @@ def reset_widgets(menu_value):
         'we': (0, 90, 'Left Looking'),
         'sn': (90, 90, 'Left Looking'),
     }
-    heading_slider.value, incidence_slider.value, look_switch.value = options[menu_value]
+    heading_slider.value, grazing_slider.value, look_switch.value = options[menu_value]
 
 
 def on_menu_change(event):
@@ -194,7 +233,7 @@ def on_menu_change(event):
 
 opts = dict(align=('center', 'center'), width=int(WIDTH / 4.5))
 heading_slider = pn.widgets.IntSlider(name='Satellite Heading', start=0, end=360, step=1, value=360 - 12, **opts)
-incidence_slider = pn.widgets.IntSlider(name='Incidence Angle', start=0, end=90, step=1, value=34, **opts)
+grazing_slider = pn.widgets.IntSlider(name='Grazing Angle', start=0, end=90, step=1, value=34, **opts)
 look_switch = pn.widgets.ToggleGroup(options=['Left Looking', 'Right Looking'], behavior='radio', **opts)
 menu_items = [
     ('Sentinel-1 Ascending', 's1a'),
@@ -206,13 +245,12 @@ menu_items = [
 menu = pn.widgets.MenuButton(name='Presets', items=menu_items, button_type='primary', **opts)
 menu.on_click(on_menu_change)
 
-# params = pn.bind(get_params,heading_slider.param.value_throttled, incidence_slider.param.value_throttled, look_switch)
-params = pn.bind(get_params, heading_slider, incidence_slider, look_switch)
+params = pn.bind(get_params, heading_slider, grazing_slider, look_switch)
 interactive_look = pn.bind(plot_look_direction, params)
-interactive_incidence = pn.bind(plot_incidence_angle, params)
+interactive_grazing = pn.bind(plot_grazing_angle, params)
 interactive_color = pn.bind(plot_color_gradient, params)
 pn.Column(
-    pn.Row(menu, heading_slider, incidence_slider, look_switch, height=100),
-    pn.Row(interactive_look, interactive_incidence),
+    pn.Row(menu, heading_slider, grazing_slider, look_switch, height=100),
+    pn.Row(interactive_look, interactive_grazing),
     pn.Row(interactive_color),
 ).servable()
