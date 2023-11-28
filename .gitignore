@@ -3,5 +3,7 @@ __pycache__/*
 pyodide-worker/*
 pyodide/*
 pyscript/*
+etc/.ipynb_checkpoints/*
 
 *.html
+*.svg

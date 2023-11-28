@@ -1,0 +1,14 @@
+name: los_palette
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python<=3.11
+  - matplotlib
+  - panel
+  - jupyter
+  - ipykernel
+  - ipywidgets-bokeh
+  - pip
+  - pip:
+      - okada_wrapper

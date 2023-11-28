@@ -56,8 +56,8 @@ def satellite_marker(axis, angle=0, center=(0, 0)):
 def get_params(heading_angle, grazing_angle, look_direction):
     left_looking = look_direction == 'Left Looking'
     away_vector = angles_to_unit_vector(heading_angle, grazing_angle, left_looking)
+    towards_vector = away_vector * -1
     away_color = unit_vector_to_hex(away_vector)
-    towards_vector = angles_to_unit_vector(heading_angle, 180 + grazing_angle, left_looking)
     towards_color = unit_vector_to_hex(towards_vector)
     return away_vector, left_looking, (away_color, towards_color)
 
@@ -177,11 +177,11 @@ def plot_color_gradient(params):
 
 def reset_widgets(menu_value):
     options = {
-        's1a': (348, 34, 'Left Looking'),
-        's1d': (193, 34, 'Left Looking'),
-        'vert': (0, 0, 'Left Looking'),
-        'we': (0, 90, 'Left Looking'),
-        'sn': (90, 90, 'Left Looking'),
+        's1a': (348, 34, 'Right Looking'),
+        's1d': (193, 34, 'Right Looking'),
+        'vert': (0, 0, 'Right Looking'),
+        'we': (0, 90, 'Right Looking'),
+        'sn': (90, 90, 'Right Looking'),
     }
     heading_input.value, grazing_input.value, look_switch.value = options[menu_value]
 
@@ -196,7 +196,7 @@ heading_input = pn.widgets.IntInput(name='Satellite Heading (0-360)', start=0, e
 grazing_input = pn.widgets.IntInput(name='Grazing Angle (0-90)', start=0, end=90, step=5, value=34, **opts)
 # heading_input = pn.widgets.IntSlider(name='Satellite Heading', start=0, end=360, step=1, value=360 - 12, **opts)
 # grazing_input = pn.widgets.IntSlider(name='Grazing Angle', start=0, end=90, step=1, value=34, **opts)
-look_switch = pn.widgets.ToggleGroup(options=['Left Looking', 'Right Looking'], behavior='radio', **opts)
+look_switch = pn.widgets.ToggleGroup(options=['Right Looking', 'Left Looking'], behavior='radio', **opts)
 menu_items = [
     ('Sentinel-1 Ascending', 's1a'),
     ('Sentinel-1 Descending', 's1d'),
